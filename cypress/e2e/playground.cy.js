@@ -60,9 +60,41 @@ describe('Cypress Playground', () => {
         cy.contains('#fruits-paragraph', `You've selected the following fruits: ${fruitSelect.join(', ')}`).should('be.visible');
     })
 
-    it.only('uploads a file and asserts the correct file name appears as a paragraph', () => {
+    it('uploads a file and asserts the correct file name appears as a paragraph', () => {
         cy.get('#file-upload').selectFile('./cypress/fixtures/example.json');
         cy.contains('#file', 'The following file has been selected for upload: example.json').should('be.visible');
+    })
+
+    it('click a button and triggers a request', () =>   {
+        cy.intercept('GET', 'https://jsonplaceholder.typicode.com/todos/1').as('getTodo');
+        cy.contains('button', 'Get TODO').click();
+        cy.wait('@getTodo').its('response.statusCode').should('be.equal', 200);
+
+        cy.contains('li', 'TODO ID: 1').should('be.visible')
+        cy.contains('li', 'Title: delectus aut autem').should('be.visible')
+        cy.contains('li', 'Completed: false').should('be.visible')
+        cy.contains('li', 'User ID: 1').should('be.visible')
+    })
+
+    it('clicks a button and triggers a stubbed request', () => {
+        const todo = require('../fixtures/todo');
+
+        cy.intercept('GET', 'https://jsonplaceholder.typicode.com/todos/1', {fixture: 'todo' }).as('getTodo');
+        cy.contains('button', 'Get TODO').click();
+        cy.wait('@getTodo').its('response.statusCode').should('be.equal', 200);
+
+        cy.contains('li', `TODO ID: ${todo.id}`).should('be.visible')
+        cy.contains('li', `Title: ${todo.title}`).should('be.visible')
+        cy.contains('li', `Completed: ${todo.completed}`).should('be.visible')
+        cy.contains('li', `User ID: ${todo.userId}`).should('be.visible')
+    })
+
+    it.only('clicks a button and simulates an API failure', () => {
+        cy.intercept('GET', 'https://jsonplaceholder.typicode.com/todos/1', { statusCode: 500 }).as('serverFailure');
+        cy.contains('button', 'Get TODO').click();
+        cy.wait('@serverFailure').its('response.statusCode').should('be.equal', 500);
+
+        cy.contains('.error',  'Oops, something went wrong. Refresh the page and try again.').should('be.visible')
     })
 
 })
